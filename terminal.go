@@ -84,16 +84,16 @@ type Terminal struct {
 	remainder []byte
 	inBuf     [256]byte
 
-	// history contains previously entered commands so that they can be
+	// History contains previously entered commands so that they can be
 	// accessed with the up and down keys.
-	history stRingBuffer
-	// historyIndex stores the currently accessed history entry, where zero
+	History stRingBuffer
+	// HistoryIndex stores the currently accessed history entry, where zero
 	// means the immediately previous entry.
-	historyIndex int
+	HistoryIndex int
 	// When navigating up and down the history it's possible to return to
 	// the incomplete, initial line. That value is stored in
-	// historyPending.
-	historyPending string
+	// HistoryPending.
+	HistoryPending string
 }
 
 // NewTerminal runs a VT100 terminal on the given ReadWriter. If the ReadWriter is
@@ -108,7 +108,7 @@ func NewTerminal(c io.ReadWriter, prompt string) *Terminal {
 		termWidth:    80,
 		termHeight:   24,
 		echo:         true,
-		historyIndex: -1,
+		HistoryIndex: -1,
 	}
 }
 
@@ -495,28 +495,28 @@ func (t *Terminal) handleKey(key rune) (line string, ok bool) {
 		t.pos = len(t.line)
 		t.moveCursorToPos(t.pos)
 	case keyUp:
-		entry, ok := t.history.NthPreviousEntry(t.historyIndex + 1)
+		entry, ok := t.History.NthPreviousEntry(t.HistoryIndex + 1)
 		if !ok {
 			return "", false
 		}
-		if t.historyIndex == -1 {
-			t.historyPending = string(t.line)
+		if t.HistoryIndex == -1 {
+			t.HistoryPending = string(t.line)
 		}
-		t.historyIndex++
+		t.HistoryIndex++
 		runes := []rune(entry)
 		t.setLine(runes, len(runes))
 	case keyDown:
-		switch t.historyIndex {
+		switch t.HistoryIndex {
 		case -1:
 			return
 		case 0:
-			runes := []rune(t.historyPending)
+			runes := []rune(t.HistoryPending)
 			t.setLine(runes, len(runes))
-			t.historyIndex--
+			t.HistoryIndex--
 		default:
-			entry, ok := t.history.NthPreviousEntry(t.historyIndex - 1)
+			entry, ok := t.History.NthPreviousEntry(t.HistoryIndex - 1)
 			if ok {
-				t.historyIndex--
+				t.HistoryIndex--
 				runes := []rune(entry)
 				t.setLine(runes, len(runes))
 			}
@@ -771,8 +771,8 @@ func (t *Terminal) readLine() (line string, err error) {
 		t.outBuf = t.outBuf[:0]
 		if lineOk {
 			if t.echo {
-				t.historyIndex = -1
-				t.history.Add(line)
+				t.HistoryIndex = -1
+				t.History.Add(line)
 			}
 			if lineIsPasted {
 				err = ErrPasteIndicator
